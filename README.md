@@ -1,43 +1,46 @@
-# FlamesCloudVRAM1.0
-5.4.24$
-# FlamesCloudVRAM1.0
+#!/bin/bash
 
-Welcome to FlamesCloudVRAM1.0! This repository contains the source code for an innovative approach to managing VRAM through a cloud-based solution, designed to optimize and enhance performance for high-demand applications such as gaming and professional graphics software.
+# Requires root privileges
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root" 
+   exit 1
+fi
 
-## Features
+# Ask user for the folder to use for operations
+read -p "Please enter the directory path for VRAM and disk operations: " USER_DEFINED_PATH
 
-- **Cloud-Managed VRAM**: Dynamically allocates and manages VRAM from the cloud, allowing for scalable graphics processing.
-- **Optimization**: Automatically optimizes VRAM usage based on the application's current needs and workload.
-- **Compatibility**: Works with a wide range of graphics hardware and operating systems.
+# Validate that the directory exists
+if [ -d "$USER_DEFINED_PATH" ]; then
+    echo "Using $USER_DEFINED_PATH for all operations."
+else
+    echo "Directory does not exist. Please check the path and try again."
+    exit 1
+fi
 
-## Installation
- 
-git clone https://github.com/Catdevzsh/FlamesCloudVRAM1.0.git
-Follow the installation instructions below to set up FlamesCloudVRAM1.0 on your system.
+echo "Listing all mounted hard drives on the system:"
+# List all mounted volumes and their device identifiers
+diskutil list
 
-Prerequisites
-Python 3.8 or higher
-Compatible graphics hardware
-Setup
-Navigate to the project directory and run the setup script:
+# Set the user defined path as the default for VRAM and hard disk operations
+export DEFAULT_STORAGE_PATH="$USER_DEFINED_PATH"
 
-bash
-Copy code
-cd FlamesCloudVRAM1.0
-./setup.sh
-Usage
-To start using FlamesCloudVRAM1.0, execute the following command:
+# Set up RAM disk (adjust size as needed)
+ramfs_size_mb=2048  # 2GB RAM disk size
+mount_point="/mnt/ramdisk"
+mkdir -p $mount_point
+mount -t ramfs -o size=$((ramfs_size_mb * 1024))k ramfs $mount_point
+echo "RAM disk set up at $mount_point with size $ramfs_size_mb MB."
 
-bash
-Copy code
-./run_flames_cloud_vram.sh
-Contributing
-Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are greatly appreciated.
+# Set up VRAM (assumed to be a GPU's VRAM)
+vram_size_mb=1024  # 1GB VRAM size
+vram_mount_point="/mnt/vram"
+mkdir -p $vram_mount_point
+mount -t tmpfs -o size=$((vram_size_mb * 1024))k tmpfs $vram_mount_point
+echo "VRAM set up at $vram_mount_point with size $vram_size_mb MB."
 
-Fork the Project
-Create your Feature Branch (git checkout -b feature/AmazingFeature)
-Commit your Changes (git commit -m 'Add some AmazingFeature')
-Push to the Branch (git push origin feature/AmazingFeature)
-Open a Pull Request
-License
-Distributed under the APACHE License. See LICENSE for more information.
+# Set up SSD/default hard disk (assumed to be a physical disk or SSD)
+# Assuming the user defined path is used as the default SSD/hard disk
+ssd_mount_point="/mnt/ssd"
+mkdir -p $ssd_mount_point
+mount --bind $USER_DEFINED_PATH $ssd_mount_point
+echo "SSD/default hard disk set up at $ssd_mount_point."
